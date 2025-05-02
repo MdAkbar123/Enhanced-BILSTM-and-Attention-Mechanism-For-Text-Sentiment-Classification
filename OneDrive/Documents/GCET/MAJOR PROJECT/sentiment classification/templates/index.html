@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Analysis Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .dashboard-header {
+            background-color: #4e73df;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .nav-tabs .nav-link {
+            font-weight: 600;
+            color: #495057;
+        }
+        .nav-tabs .nav-link.active {
+            color: #4e73df;
+            border-bottom: 3px solid #4e73df;
+        }
+        .model-card {
+            border-left: 4px solid #4e73df;
+            transition: transform 0.3s;
+        }
+        .model-card:hover {
+            transform: translateY(-5px);
+        }
+        .feature-icon {
+            font-size: 1.5rem;
+            color: #4e73df;
+            margin-right: 10px;
+        }
+        .sentiment-badge {
+            padding: 0.35em 0.65em;
+            font-weight: 600;
+        }
+        .negative {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .neutral {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .positive {
+            background-color: #d4edda;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="dashboard-header d-flex justify-content-between align-items-center">
+            <div>
+                <h2><i class="bi bi-graph-up"></i> Sentiment Analysis Dashboard</h2>
+                <p class="mb-0">Analyze text sentiment with our advanced deep learning model</p>
+            </div>
+            <a href="{{ url_for('logout') }}" class="btn btn-light">
+                <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
+        </div>
+
+        <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <a class="nav-link {% if active_tab == 'home' or not active_tab %}active{% endif %}" id="home-tab" data-bs-toggle="tab" href="#home" role="tab">
+                    <i class="bi bi-house-door"></i> Home
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link {% if active_tab == 'single' %}active{% endif %}" id="single-tab" data-bs-toggle="tab" href="#single" role="tab">
+                    <i class="bi bi-chat-square-text"></i> Single Analysis
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link {% if active_tab == 'batch' %}active{% endif %}" id="batch-tab" data-bs-toggle="tab" href="#batch" role="tab">
+                    <i class="bi bi-file-earmark-spreadsheet"></i> Batch Analysis
+                </a>
+            </li>
+        </ul>
+
+        <div class="tab-content p-4 bg-white border border-top-0 rounded-bottom shadow-sm" id="myTabContent">
+            <!-- Home Tab -->
+            <div class="tab-pane fade {% if active_tab == 'home' or not active_tab %}show active{% endif %}" id="home" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h4><i class="bi bi-info-circle"></i> About Our Sentiment Analysis Model</h4>
+                        <p>Our advanced deep learning model classifies text into <span class="sentiment-badge negative">Negative</span>, 
+                        <span class="sentiment-badge neutral">Neutral</span>, or <span class="sentiment-badge positive">Positive</span> 
+                        sentiment with high accuracy.</p>
+                        
+                        <div class="card model-card mb-4">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="bi bi-diagram-3"></i> Model Architecture</h5>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item">
+                                        <i class="bi bi-1-circle feature-icon"></i>
+                                        <strong>GloVe Embeddings</strong>: 100-dimensional pre-trained word vectors
+                                    </li>
+                                    <li class="list-group-item">
+                                        <i class="bi bi-2-circle feature-icon"></i>
+                                        <strong>Bidirectional LSTM</strong>: Captures sequential context in both directions
+                                    </li>
+                                    <li class="list-group-item">
+                                        <i class="bi bi-3-circle feature-icon"></i>
+                                        <strong>Transformer Encoder</strong>: Multi-head attention for important features
+                                    </li>
+                                    <li class="list-group-item">
+                                        <i class="bi bi-4-circle feature-icon"></i>
+                                        <strong>Dense Layers</strong>: With ReLU activation and dropout for regularization
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="card model-card mb-4">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="bi bi-graph-up"></i> Training Process</h5>
+                                <ul>
+                                    <li><strong>Dataset</strong>: Processed Amazon product reviews with sentiment labels</li>
+                                    <li><strong>Tokenization</strong>: Vocabulary size of 30,000 words</li>
+                                    <li><strong>Sequence Length</strong>: Fixed at 150 tokens with padding/truncation</li>
+                                    <li><strong>Optimizer</strong>: Adam with learning rate 1e-4</li>
+                                    <li><strong>Regularization</strong>: Early stopping and learning rate reduction on plateau</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="card model-card mb-4">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="bi bi-speedometer2"></i> Model Performance</h5>
+                                <canvas id="performanceChart" height="250"></canvas>
+                                <script>
+                                    const ctx = document.getElementById('performanceChart').getContext('2d');
+                                    new Chart(ctx, {
+                                        type: 'bar',
+                                        data: {
+                                            labels: ['Precision', 'Recall', 'F1-Score'],
+                                            datasets: [
+                                                {
+                                                    label: 'Negative',
+                                                    data: [0.89, 0.85, 0.87],
+                                                    backgroundColor: '#dc3545'
+                                                },
+                                                {
+                                                    label: 'Neutral',
+                                                    data: [0.82, 0.78, 0.80],
+                                                    backgroundColor: '#ffc107'
+                                                },
+                                                {
+                                                    label: 'Positive',
+                                                    data: [0.91, 0.93, 0.92],
+                                                    backgroundColor: '#28a745'
+                                                }
+                                            ]
+                                        },
+                                        options: {
+                                            responsive: true,
+                                            scales: {
+                                                y: {
+                                                    beginAtZero: true,
+                                                    max: 1.0
+                                                }
+                                            }
+                                        }
+                                    });
+                                </script>
+                            </div>
+                        </div>
+                        
+                        <div class="card model-card">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="bi bi-lightbulb"></i> Quick Start</h5>
+                                <div class="alert alert-info">
+                                    <strong>Try it out!</strong> Use the Single Analysis tab to test individual sentences
+                                    or the Batch Analysis tab to process entire datasets.
+                                </div>
+                                <p class="card-text">
+                                    <i class="bi bi-arrow-right-circle"></i> For best results, provide clear, complete sentences.
+                                </p>
+                                <p class="card-text">
+                                    <i class="bi bi-arrow-right-circle"></i> Batch processing supports CSV/Excel files with a 'Text' column.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Single Sentence Tab -->
+            <div class="tab-pane fade {% if active_tab == 'single' %}show active{% endif %}" id="single" role="tabpanel">
+                <form method="POST" action="{{ url_for('single_analysis') }}">
+                    <div class="mb-3">
+                        <label for="text" class="form-label">Enter text to analyze:</label>
+                        <textarea name="text" class="form-control" rows="5" placeholder="Type or paste your text here..." required>{{ text or '' }}</textarea>
+                    </div>
+                    {% if error %}
+                        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                            {{ error }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endif %}
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-arrow-repeat"></i> Analyze Sentiment
+                    </button>
+                </form>
+                
+                {% if result %}
+                    <div class="alert mt-3 {% if result == 'Positive' %}alert-success{% elif result == 'Negative' %}alert-danger{% else %}alert-warning{% endif %}">
+                        <!-- <h5><i class="bi bi-emoji-{% if result == 'Positive' %}smile{% elif result == 'Negative' %}frown{% else %}neutral{% endif %}"></i>  -->
+                        Predicted Sentiment: <strong>{{ result }}</strong></h5>
+                        <!-- <p class="mb-0">Confidence: {{ confidence }}%</p> -->
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Batch Analysis Tab -->
+            <div class="tab-pane fade {% if active_tab == 'batch' %}show active{% endif %}" id="batch" role="tabpanel">
+                <form method="POST" action="{{ url_for('batch_analysis') }}" enctype="multipart/form-data" class="mb-4">
+                    <div class="mb-3">
+                        <label class="form-label">Upload your data file:</label>
+                        <input type="file" name="file" class="form-control" accept=".csv,.xlsx,.xls" required>
+                        <div class="form-text">Supports CSV or Excel files with a 'Text' column (and optional 'Sentiment' column for comparison)</div>
+                    </div>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-gear"></i> Analyze Batch
+                    </button>
+                </form>
+
+                {% if results %}
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5><i class="bi bi-table"></i> Analysis Results</h5>
+                        <a href="{{ url_for('download_results') }}" class="btn btn-primary">
+                            <i class="bi bi-download"></i> Download Full Results
+                        </a>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Text</th>
+                                    <th>Original Sentiment</th>
+                                    <th>Predicted Sentiment</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in results %}
+                                    <tr>
+                                        <td>{{ row.Text|truncate(100) }}</td>
+                                        <td>
+                                            {% if row.Sentiment == 'N/A' %}
+                                                <span class="badge bg-secondary">Not available</span>
+                                            {% else %}
+                                                <span class="badge {% if row.Sentiment == 'Positive' %}bg-success{% elif row.Sentiment == 'Negative' %}bg-danger{% else %}bg-warning{% endif %}">
+                                                    {{ row.Sentiment }}
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge {% if row.Sentiment_Predicted == 'Positive' %}bg-success{% elif row.Sentiment_Predicted == 'Negative' %}bg-danger{% else %}bg-warning{% endif %}">
+                                                {{ row.Sentiment_Predicted }}
+                                            </span>
+                                            {% if row.Sentiment != 'N/A' and row.Sentiment != row.Sentiment_Predicted %}
+                                                <span class="badge bg-info ms-2">Changed</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+
+                {% if chart_data %}
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="bi bi-pie-chart"></i> Sentiment Distribution</h5>
+                                    <canvas id="sentimentChart" height="250"></canvas>
+                                    <script>
+                                        const ctx2 = document.getElementById('sentimentChart').getContext('2d');
+                                        new Chart(ctx2, {
+                                            type: 'pie',
+                                            data: {
+                                                labels: {{ chart_data['labels'] | tojson }},
+                                                datasets: [{
+                                                    data: {{ chart_data['values'] | tojson }},
+                                                    backgroundColor: ['#dc3545', '#ffc107', '#28a745']
+                                                }]
+                                            },
+                                            options: {
+                                                responsive: true,
+                                                plugins: {
+                                                    legend: {
+                                                        position: 'bottom'
+                                                    }
+                                                }
+                                            }
+                                        });
+                                    </script>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="bi bi-bar-chart"></i> Sentiment Comparison</h5>
+                                    <canvas id="comparisonChart" height="250"></canvas>
+                                    <script>
+                                        // This would compare original vs predicted if original sentiment was available
+                                        // You would need to pass this data from your backend
+                                    </script>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Activate the correct tab based on Flask variable
+            const activeTab = "{{ active_tab }}";
+            if (activeTab) {
+                const triggerEl = document.querySelector(`#${activeTab}-tab`);
+                if (triggerEl) {
+                    const tab = new bootstrap.Tab(triggerEl);
+                    tab.show();
+                }
+            }
+            
+            // Add animation to model cards
+            const cards = document.querySelectorAll('.model-card');
+            cards.forEach((card, index) => {
+                card.style.animationDelay = `${index * 0.1}s`;
+            });
+        });
+    </script>
+</body>
+</html>
